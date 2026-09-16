@@ -1,0 +1,32 @@
+[
+  {
+    "code": "",
+    "titel": "Start",
+    "text": "Bot Heiligenhaus. Nummer tippen.\n{menue}"
+  },
+  {
+    "code": "1",
+    "titel": "Signal",
+    "text": ""
+  },
+  {
+    "code": "2",
+    "titel": "Wetter",
+    "text": ""
+  },
+  {
+    "code": "3",
+    "titel": "Info",
+    "text": ""
+  },
+  {
+    "code": "31",
+    "titel": "Anleitung",
+    "text": "{nr} primeschakal-png.github.io/Mesh-Bot"
+  },
+  {
+    "code": "32",
+    "titel": "Betreiber",
+    "text": "{nr} DE-NW Heiligenhaus, QRV seit 09/26"
+  }
+]
