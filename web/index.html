@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mesh-Bot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --geh:#d8d3c4; --geh-2:#c6c0ae; --geh-3:#b0a894;
+  --schrift:#2a2722; --schrift-leise:#6b6456;
+  --kante:#9a927e; --bernstein:#b06a00; --warn:#b3261e; --gut:#2d6a35;
+  --disp-bg:#0a0c0a; --disp-txt:#e8e8e8;
+  --tt-gelb:#ffe14d; --tt-cyan:#5ce1e6; --tt-gruen:#7ddc6b;
+  --tt-rot:#ff6b6b; --tt-grau:#8a8f8a;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --geh:#32383a; --geh-2:#272c2e; --geh-3:#1e2224;
+    --schrift:#e6e3db; --schrift-leise:#9aa09d;
+    --kante:#151819; --bernstein:#f0a830; --warn:#ff7a6e; --gut:#7ddc6b;
+  }
+}
+:root[data-theme="dark"]{
+  --geh:#32383a; --geh-2:#272c2e; --geh-3:#1e2224;
+  --schrift:#e6e3db; --schrift-leise:#9aa09d;
+  --kante:#151819; --bernstein:#f0a830; --warn:#ff7a6e; --gut:#7ddc6b;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--geh-2);color:var(--schrift);
+  font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:15px;line-height:1.5}
+.pult{max-width:1180px;margin:0 auto;padding:18px 16px 60px}
+
+header{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+h1{font-size:19px;font-weight:600;margin:0}
+.lampe{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--schrift-leise)}
+.lampe b{width:9px;height:9px;border-radius:50%;background:var(--schrift-leise);display:inline-block}
+.lampe.an b{background:var(--gut)}
+.lampe.aus b{background:var(--warn)}
+
+.modus{display:flex;gap:2px;margin-left:auto}
+.modus button{font:inherit;font-size:13px;font-weight:500;padding:6px 14px;cursor:pointer;
+  background:var(--geh-3);color:var(--schrift-leise);border:1px solid var(--kante)}
+.modus button:first-child{border-radius:4px 0 0 4px}
+.modus button:last-child{border-radius:0 4px 4px 0}
+.modus button[aria-pressed="true"]{background:var(--bernstein);color:#fff;border-color:var(--bernstein)}
+
+.reiter{display:flex;gap:2px;margin-bottom:16px}
+.reiter button{font:inherit;font-weight:500;padding:8px 18px;cursor:pointer;
+  background:var(--geh-3);color:var(--schrift-leise);
+  border:1px solid var(--kante);border-bottom:none;border-radius:5px 5px 0 0}
+.reiter button[aria-selected="true"]{background:var(--geh);color:var(--schrift)}
+
+.gehaeuse{background:var(--geh);border:1px solid var(--kante);border-radius:6px;padding:14px}
+.gehaeuse + .gehaeuse{margin-top:14px}
+.geh-kopf{display:flex;justify-content:space-between;align-items:center;gap:10px;
+  margin-bottom:10px;flex-wrap:wrap}
+.geh-kopf h2{font-size:13px;font-weight:600;margin:0;letter-spacing:.06em}
+.geh-kopf .hinweis{font-size:12px;color:var(--schrift-leise)}
+
+.display{background:var(--disp-bg);color:var(--disp-txt);
+  font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:13px;
+  border-radius:3px;padding:12px;overflow:auto;box-shadow:inset 0 1px 6px rgba(0,0,0,.6)}
+#verlauf{height:320px}
+#konsole{height:220px;font-size:12px}
+.zeile{margin-bottom:7px;white-space:pre-wrap;word-break:break-word}
+.rx{color:var(--tt-cyan)}
+.tx{color:var(--tt-gelb)}
+.meta{color:var(--tt-grau);font-size:11px}
+.meta.zuviel{color:var(--tt-rot)}
+.log{color:var(--tt-grau)}
+.ok{color:var(--tt-gruen)}
+.fehler{color:var(--tt-rot)}
+
+.eingabe{display:flex;gap:8px;margin-top:10px}
+.eingabe input{flex:1;min-width:0;font-family:"IBM Plex Mono",monospace;font-size:14px;
+  padding:9px 11px;background:var(--geh-3);color:var(--schrift);
+  border:1px solid var(--kante);border-radius:4px}
+button.senden,.werkzeuge button{font:inherit;font-weight:500;padding:9px 16px;cursor:pointer;
+  background:var(--bernstein);color:#fff;border:none;border-radius:4px}
+.werkzeuge button.leise{background:var(--geh-3);color:var(--schrift);border:1px solid var(--kante)}
+button:focus-visible,input:focus-visible,textarea:focus-visible{
+  outline:2px solid var(--bernstein);outline-offset:2px}
+.werkzeuge{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+
+.regler{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end;margin-top:12px}
+.regler label{font-size:12px;color:var(--schrift-leise);display:block;margin-bottom:3px}
+.regler input{font:inherit;font-size:13px;padding:5px 8px;width:88px;
+  background:var(--geh-3);color:var(--schrift);border:1px solid var(--kante);border-radius:4px}
+
+.seiten-raster{display:grid;grid-template-columns:270px 1fr;gap:14px}
+@media (max-width:760px){.seiten-raster{grid-template-columns:1fr}}
+#baum{max-height:430px;overflow:auto;font-family:"IBM Plex Mono",monospace;font-size:13px;
+  background:var(--geh-3);border:1px solid var(--kante);border-radius:4px;padding:6px}
+#baum div{padding:4px 7px;cursor:pointer;border-radius:3px;white-space:nowrap}
+#baum div:hover{background:var(--geh)}
+#baum div[aria-current="true"]{background:var(--bernstein);color:#fff}
+#baum .plugin{color:var(--bernstein);cursor:default}
+#baum div[aria-current="true"].plugin{color:#fff}
+
+.feld{margin-bottom:12px}
+.feld label{display:block;font-size:12px;color:var(--schrift-leise);margin-bottom:4px}
+.feld input,.feld textarea{width:100%;font-family:"IBM Plex Mono",monospace;font-size:13px;
+  padding:8px 10px;background:var(--geh-3);color:var(--schrift);
+  border:1px solid var(--kante);border-radius:4px;resize:vertical}
+.feld textarea{min-height:120px;line-height:1.55}
+.zaehler{font-family:"IBM Plex Mono",monospace;font-size:12px;margin-top:5px;color:var(--gut)}
+.zaehler.zuviel{color:var(--warn);font-weight:600}
+.platzhalter{font-size:12px;color:var(--schrift-leise);margin-top:14px;line-height:1.8}
+.platzhalter code{font-family:"IBM Plex Mono",monospace;background:var(--geh-3);
+  padding:1px 5px;border-radius:3px;border:1px solid var(--kante)}
+
+.kacheln{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.kachel{background:var(--geh-3);border:1px solid var(--kante);border-radius:4px;padding:11px 13px}
+.kachel .wert{font-family:"IBM Plex Mono",monospace;font-size:21px;font-weight:600}
+.kachel .was{font-size:12px;color:var(--schrift-leise);margin-top:2px}
+table{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--kante)}
+th{font-size:12px;color:var(--schrift-leise);font-weight:500}
+td.nr{font-family:"IBM Plex Mono",monospace}
+.versteckt{display:none}
+</style>
+</head>
+<body>
+<div class="pult">
+
+<header>
+  <h1>Mesh-Bot</h1>
+  <span class="lampe" id="lampe"><b></b><span id="lampe-text">verbinde…</span></span>
+  <div class="modus" role="group" aria-label="Betriebsart">
+    <button data-modus="offline" aria-pressed="false">Offline</button>
+    <button data-modus="mitlesen" aria-pressed="false">Mitlesen</button>
+    <button data-modus="scharf" aria-pressed="false">Scharf</button>
+  </div>
+</header>
+
+<div class="reiter" role="tablist">
+  <button role="tab" id="t-funk" aria-selected="true">Funk</button>
+  <button role="tab" id="t-seiten" aria-selected="false">Seiten</button>
+  <button role="tab" id="t-stat" aria-selected="false">Statistik</button>
+</div>
+
+<!-- FUNK -->
+<section id="p-funk">
+  <div class="gehaeuse">
+    <div class="geh-kopf">
+      <h2>Verlauf</h2><span class="hinweis" id="h-transport"></span>
+    </div>
+    <div class="display" id="verlauf" aria-live="polite"></div>
+    <div class="eingabe">
+      <input id="eingabe" placeholder="Testnachricht an den Bot" autocomplete="off" spellcheck="false">
+      <button class="senden" id="btn-senden">Senden</button>
+    </div>
+    <div class="regler">
+      <div><label for="r-snr">SNR dB</label><input id="r-snr" type="number" step="0.5" value="6.5"></div>
+      <div><label for="r-rssi">RSSI dBm</label><input id="r-rssi" type="number" value="-88"></div>
+      <div><label for="r-hops">Hops</label><input id="r-hops" type="number" min="0" value="2"></div>
+      <div><label for="r-limit">Limit Byte</label><input id="r-limit" type="number" min="20" value="200"></div>
+      <div><label for="r-rate">Ratenlimit s</label><input id="r-rate" type="number" min="0" value="20"></div>
+    </div>
+  </div>
+
+  <div class="gehaeuse">
+    <div class="geh-kopf"><h2>Konsole</h2><span class="hinweis">Entscheidungen des Bots</span></div>
+    <div class="display" id="konsole" aria-live="polite"></div>
+    <div class="werkzeuge">
+      <button class="leise" id="btn-leeren">Verlauf leeren</button>
+      <button class="leise" id="btn-reload">Seiten und Plugins neu laden</button>
+      <button class="leise" id="btn-theme">Hell / Dunkel</button>
+    </div>
+  </div>
+</section>
+
+<!-- SEITEN -->
+<section id="p-seiten" class="versteckt">
+  <div class="gehaeuse">
+    <div class="geh-kopf">
+      <h2>Seitenbaum</h2>
+      <span class="hinweis">Die Nummer ist der Weg. 2 ist ein Menüpunkt, 24 sein vierter Unterpunkt.</span>
+    </div>
+    <div class="seiten-raster">
+      <div>
+        <div id="baum"></div>
+        <div class="werkzeuge">
+          <button id="btn-neu">Neue Seite</button>
+          <button class="leise" id="btn-loeschen">Löschen</button>
+        </div>
+        <div class="werkzeuge">
+          <button id="btn-speichern">Speichern</button>
+        </div>
+      </div>
+      <div>
+        <div class="feld"><label for="f-code">Nummer</label>
+          <input id="f-code" autocomplete="off" spellcheck="false"></div>
+        <div class="feld"><label for="f-titel">Titel im Menü</label>
+          <input id="f-titel" autocomplete="off"></div>
+        <div class="feld"><label for="f-text">Ausgabe</label>
+          <textarea id="f-text" spellcheck="false"
+            placeholder="Leer lassen, dann zeigt der Bot nur die Unterpunkte."></textarea>
+          <div class="zaehler" id="z-text"></div></div>
+        <div class="platzhalter">
+          Platzhalter: <code>{snr}</code> <code>{rssi}</code> <code>{hops}</code>
+          <code>{zeit}</code> <code>{uhr}</code> <code>{name}</code>
+          <code>{nr}</code> <code>{menue}</code><br>
+          Orange markierte Nummern kommen aus einem Plugin und lassen sich hier nicht bearbeiten.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STATISTIK -->
+<section id="p-stat" class="versteckt">
+  <div class="gehaeuse">
+    <div class="geh-kopf"><h2>Betrieb</h2><span class="hinweis">seit Start des Prozesses</span></div>
+    <div class="kacheln" id="kacheln"></div>
+  </div>
+  <div class="gehaeuse">
+    <div class="geh-kopf"><h2>Gefragte Seiten</h2></div>
+    <table id="t-seitenstat"><thead><tr><th>Nummer</th><th>Anfragen</th></tr></thead><tbody></tbody></table>
+  </div>
+  <div class="gehaeuse">
+    <div class="geh-kopf"><h2>Plugins</h2></div>
+    <table id="t-plugins">
+      <thead><tr><th>Nr</th><th>Titel</th><th>Datei</th><th>Cache</th><th>Aufrufe</th><th>Fehler</th></tr></thead>
+      <tbody></tbody></table>
+  </div>
+</section>
+</div>
+
+<script>
+"use strict";
+
+let ws = null, seiten = [], plugins = [], gewaehlt = null, limit = 200;
+
+/* ---------- Verbindung ---------- */
+function verbinden(){
+  ws = new WebSocket((location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/ws");
+  ws.onopen = () => lampe(true, "verbunden");
+  ws.onclose = () => { lampe(false, "getrennt, versuche neu"); setTimeout(verbinden, 2000); };
+  ws.onerror = () => lampe(false, "Fehler");
+  ws.onmessage = e => empfangen(JSON.parse(e.data));
+}
+function schicken(o){ if(ws && ws.readyState === 1) ws.send(JSON.stringify(o)); }
+function lampe(an, text){
+  const l = document.getElementById("lampe");
+  l.className = "lampe " + (an ? "an" : "aus");
+  document.getElementById("lampe-text").textContent = text;
+}
+
+/* ---------- Anzeige ---------- */
+const verlauf = document.getElementById("verlauf");
+const konsole = document.getElementById("konsole");
+function zeile(ziel, klasse, text){
+  const d = document.createElement("div");
+  d.className = "zeile " + klasse; d.textContent = text;
+  ziel.appendChild(d); ziel.scrollTop = ziel.scrollHeight;
+  return d;
+}
+
+function empfangen(m){
+  if(m.typ === "rx"){
+    zeile(verlauf, "rx", `< ${m.absender}: ${m.text}`);
+    zeile(verlauf, "meta", `  ${m.bytes} B  SNR ${m.snr}  RSSI ${m.rssi}  ${m.hops} Hops`);
+  }
+  else if(m.typ === "tx"){
+    zeile(verlauf, "tx", `> ${m.text}`);
+    const zusatz = m.gesendet ? "" : "  NICHT GESENDET (" + m.modus + ")";
+    const d = zeile(verlauf, "meta",
+      `  ${m.bytes} B` + (m.pakete > 1 ? ` in ${m.pakete} Paketen` : "") +
+      `  aus ${m.quelle}` + zusatz);
+    if(m.zu_lang) d.classList.add("zuviel");
+    zeile(konsole, m.zu_lang ? "fehler" : "ok",
+      `TX ${m.bytes} B ${m.zu_lang ? "ZU LANG" : "ok"} (Limit ${limit})`);
+  }
+  else if(m.typ === "log"){ zeile(konsole, "log", "   " + m.text); }
+  else if(m.typ === "leeren"){ verlauf.textContent = ""; konsole.textContent = ""; }
+  else if(m.typ === "seiten"){ seiten = m.seiten; baumZeichnen(); }
+  else if(m.typ === "status"){ statusSetzen(m); }
+}
+
+function statusSetzen(m){
+  document.querySelectorAll(".modus button").forEach(b =>
+    b.setAttribute("aria-pressed", b.dataset.modus === m.modus ? "true" : "false"));
+  document.getElementById("h-transport").textContent =
+    `Transport ${m.transport}` + (m.transport === "seriell"
+      ? (m.verbunden ? ", Node verbunden" : ", Node nicht erreichbar") : "");
+  limit = m.limit;
+  document.getElementById("r-limit").value = m.limit;
+  document.getElementById("r-rate").value = m.ratenlimit;
+  plugins = m.plugins || [];
+  statistikZeichnen(m.statistik);
+  baumZeichnen();
+}
+
+function statistikZeichnen(s){
+  if(!s) return;
+  const k = [
+    [s.anfragen, "Anfragen"], [s.antworten, "Antworten"],
+    [s.nutzer, "Nutzer"], [s.abgelehnt_limit, "Ratenlimit"],
+    [s.zu_lang, "zu lang"], [s.unbekannt, "unbekannt"],
+    [s.sendezeit_s + " s", "Sendezeit"], [s.duty_cycle_prozent + " %", "Duty Cycle"]
+  ];
+  const ziel = document.getElementById("kacheln");
+  ziel.textContent = "";
+  k.forEach(([w, t]) => {
+    const d = document.createElement("div"); d.className = "kachel";
+    const a = document.createElement("div"); a.className = "wert"; a.textContent = w;
+    const b = document.createElement("div"); b.className = "was"; b.textContent = t;
+    d.append(a, b); ziel.appendChild(d);
+  });
+
+  const tb = document.querySelector("#t-seitenstat tbody"); tb.textContent = "";
+  (s.top_seiten || []).forEach(e => {
+    const tr = document.createElement("tr");
+    const a = document.createElement("td"); a.className = "nr"; a.textContent = e.code;
+    const b = document.createElement("td"); b.textContent = e.anzahl;
+    tr.append(a, b); tb.appendChild(tr);
+  });
+
+  const pb = document.querySelector("#t-plugins tbody"); pb.textContent = "";
+  plugins.forEach(p => {
+    const tr = document.createElement("tr");
+    [p.code || "0", p.titel, p.datei, p.cache + " s", p.aufrufe, p.fehler || ""]
+      .forEach((v, i) => {
+        const td = document.createElement("td");
+        if(i === 0) td.className = "nr";
+        td.textContent = v; tr.appendChild(td);
+      });
+    pb.appendChild(tr);
+  });
+}
+
+/* ---------- Seiteneditor ---------- */
+const fCode = document.getElementById("f-code");
+const fTitel = document.getElementById("f-titel");
+const fText = document.getElementById("f-text");
+
+function baumZeichnen(){
+  const baum = document.getElementById("baum");
+  baum.textContent = "";
+  const alle = [
+    ...seiten.map(s => ({...s, plugin:false})),
+    ...plugins.filter(p => !seiten.some(s => s.code === p.code))
+              .map(p => ({code:p.code, titel:p.titel, text:"", plugin:true}))
+  ].sort((a, b) => a.code.localeCompare(b.code));
+
+  alle.forEach(s => {
+    const d = document.createElement("div");
+    d.textContent = "  ".repeat(s.code.length) + (s.code === "" ? "0" : s.code) + "  " + s.titel;
+    if(s.plugin){ d.classList.add("plugin"); d.title = "aus einem Plugin"; }
+    if(s.code === gewaehlt) d.setAttribute("aria-current", "true");
+    if(!s.plugin) d.onclick = () => { gewaehlt = s.code; formFuellen(); baumZeichnen(); };
+    baum.appendChild(d);
+  });
+}
+
+function formFuellen(){
+  const s = seiten.find(x => x.code === gewaehlt);
+  fCode.value = s ? s.code : "";
+  fTitel.value = s ? s.titel : "";
+  fText.value = s ? s.text : "";
+  zaehlen();
+}
+
+function zaehlen(){
+  const b = new TextEncoder().encode(fText.value).length;
+  const z = document.getElementById("z-text");
+  z.textContent = `${b} von ${limit} Byte  ` + (b > limit ? `${b - limit} zu viel` : `${limit - b} frei`);
+  z.className = "zaehler" + (b > limit ? " zuviel" : "");
+}
+
+function uebernehmen(){
+  const s = seiten.find(x => x.code === gewaehlt);
+  if(!s) return;
+  const neu = fCode.value.replace(/[^0-9]/g, "");
+  if(neu !== gewaehlt && seiten.some(x => x.code === neu)){ fCode.value = gewaehlt; return; }
+  s.code = neu; s.titel = fTitel.value; s.text = fText.value;
+  gewaehlt = neu; baumZeichnen(); zaehlen();
+}
+
+/* ---------- Verdrahtung ---------- */
+function senden(){
+  const f = document.getElementById("eingabe");
+  const t = f.value.trim(); if(!t) return; f.value = "";
+  schicken({typ:"test", text:t,
+    snr: parseFloat(document.getElementById("r-snr").value),
+    rssi: parseInt(document.getElementById("r-rssi").value, 10),
+    hops: parseInt(document.getElementById("r-hops").value, 10)});
+}
+document.getElementById("btn-senden").onclick = senden;
+document.getElementById("eingabe").addEventListener("keydown", e => { if(e.key === "Enter") senden(); });
+document.getElementById("btn-leeren").onclick = () => schicken({typ:"leeren"});
+document.getElementById("btn-reload").onclick = () => schicken({typ:"neu_laden"});
+document.getElementById("btn-theme").onclick = () => {
+  const j = document.documentElement.getAttribute("data-theme");
+  const d = j === "dark" || (!j && matchMedia("(prefers-color-scheme: dark)").matches);
+  document.documentElement.setAttribute("data-theme", d ? "light" : "dark");
+};
+document.querySelectorAll(".modus button").forEach(b =>
+  b.onclick = () => schicken({typ:"modus", wert:b.dataset.modus}));
+document.getElementById("r-limit").addEventListener("change", e =>
+  schicken({typ:"limit", wert:parseInt(e.target.value, 10)}));
+document.getElementById("r-rate").addEventListener("change", e =>
+  schicken({typ:"ratenlimit", wert:parseInt(e.target.value, 10)}));
+
+document.getElementById("btn-neu").onclick = () => {
+  let n = 1; while(seiten.some(s => s.code === String(n))) n++;
+  seiten.push({code:String(n), titel:"Neu", text:""});
+  gewaehlt = String(n); baumZeichnen(); formFuellen(); fTitel.focus();
+};
+document.getElementById("btn-loeschen").onclick = () => {
+  if(gewaehlt === null || gewaehlt === "") return;
+  seiten = seiten.filter(s => s.code !== gewaehlt);
+  gewaehlt = null; baumZeichnen(); formFuellen();
+};
+document.getElementById("btn-speichern").onclick = () => schicken({typ:"seiten_speichern", seiten});
+[fCode, fTitel, fText].forEach(el => el.addEventListener("input", uebernehmen));
+
+document.querySelectorAll('[role="tab"]').forEach(t => t.onclick = () => {
+  document.querySelectorAll('[role="tab"]').forEach(x => x.setAttribute("aria-selected", "false"));
+  t.setAttribute("aria-selected", "true");
+  document.getElementById("p-funk").classList.toggle("versteckt", t.id !== "t-funk");
+  document.getElementById("p-seiten").classList.toggle("versteckt", t.id !== "t-seiten");
+  document.getElementById("p-stat").classList.toggle("versteckt", t.id !== "t-stat");
+});
+
+verbinden();
+</script>
+</body>
+</html>
